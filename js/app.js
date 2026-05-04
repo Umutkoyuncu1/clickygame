@@ -1,8 +1,4 @@
-// Click a button or object to earn points so that I can increase my score.
-// See my current score during the game so that I know how well I am doing.
-// See a countdown timer so that I know how much time is left. setInterval();
 
-// Variables
 // ===== STATE =====
 let score = 0;
 let timeLeft = 5;
@@ -79,9 +75,7 @@ function endGame() {
   finalScore.innerText = "Final Score: " + score;
 }
 
-// ===== HIGHSCORE SYSTEM =====
-
-// Hämta från localStorage
+// ===== HIGHSCORES =====
 function getHighscores() {
   try {
     return JSON.parse(localStorage.getItem("highscores")) || [];
@@ -90,28 +84,22 @@ function getHighscores() {
   }
 }
 
-// Spara till localStorage
 function saveHighscores(scores) {
   localStorage.setItem("highscores", JSON.stringify(scores));
 }
 
-// Lägg till + sortera + begränsa
 function addHighscore(name, score) {
   const scores = getHighscores();
 
   scores.push({ name, score });
-
-  // Sortera högst först
   scores.sort((a, b) => b.score - a.score);
 
-  // Behåll top 10
   const top10 = scores.slice(0, 10);
 
   saveHighscores(top10);
   renderHighscores(top10);
 }
 
-// Visa lista
 function renderHighscores(scores) {
   highscoreList.innerHTML = "";
 
@@ -122,14 +110,13 @@ function renderHighscores(scores) {
   });
 }
 
-// Ladda vid start
 function loadHighscores() {
   const scores = getHighscores();
   renderHighscores(scores);
 }
 
-// ===== SUBMIT =====
-function submitHighScore() {
+// ===== SUBMIT + ZAPIER (FIXED) =====
+async function submitHighScore() {
   const playerName = input1.value.trim();
 
   if (playerName.length < 3) {
@@ -138,10 +125,26 @@ function submitHighScore() {
   }
 
   try {
+    // 1. Local save
     addHighscore(playerName, score);
-    message.innerText = "Score saved to leaderboard!";
+
+    // 2. Send to Zapier (FIX: no-cors avoids Failed to fetch)
+    fetch("https://hooks.zapier.com/hooks/catch/8338993/ujs9jj9/", {
+      method: "POST",
+      mode: "no-cors",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        name: playerName,
+        score: score
+      })
+    });
+
+    message.innerText = "Score saved & sent!";
+
   } catch (error) {
-    message.innerText = "Something went wrong.";
-    console.error(error);
+    console.error("ERROR:", error);
+    message.innerText = "Something went wrong: " + error.message;
   }
 }
